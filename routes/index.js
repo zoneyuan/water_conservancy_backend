@@ -12,13 +12,12 @@ router.get("/", (req, res, next) => {
 })
 
 router.get("/search", (req, res, next) => {
-    var query=`select * from metadata m,county x,city c where c.行政区划_c='武汉市' and  ST_Within(x.geom,c.geom)=true and m.data_id=x.gid`
+    var query=``
     if(req.query.type=="reigon")
     {
     //行政区划查询
-    const city = req.query.citya
-    const querycity=`select x from annlk_point x,city c where c.行政区划_c='${city}' and  ST_Intersects(c.geom,x.geom)=true`
-    query=`select * from metadata m,county x,city c where c.行政区划_c like '%${city}%' and  ST_Within(x.geom,c.geom)=true and m.data_id=x.gid`
+    const reigonname = req.query.reigonnamea
+    query=`select * from metadata where city like '%${reigonname}%' or county like '%${reigonname}%'`
     console.log(query);
     }
     /* else if(req.body.type==select)
@@ -221,5 +220,53 @@ router.post("/api/forge", async (req, res, next) => {
         next(err)
     }
 })
+// 项目信息
+router.get('/projectInfo',async(req, res, next) => {
+    const values = []
+    if(req.query.name) {
+        values.push(
+            req.query.name ? `(project_name like '%${req.query.name}%')` : "true"
+        )
+    } else {
+        values.push(true)
+    }
 
+    const query1 = `select * from projectinfo where ${values[0]}`
+    db.query(query1, (err, result) => {
+        if (err) {
+            next(err)
+        } else {
+             res.json(result.rows)
+        }
+    })
+})
+
+// 根据项目id得到相应的数据信息
+router.get('/dataInfoByProject',async(req, res, next) => {
+    values = []
+    tempsql = '('
+    if(req.query) {
+        List = req.query
+        for(var i in List) {
+            id = List[i]
+            tempsql += 'project_id = ' + id + ' or '
+        };
+        tempsql  = tempsql.substring(0, tempsql.length -4)
+        tempsql += ')'
+        values.push(tempsql)
+    } else{
+        values.push(true)
+    }
+
+    const query = `select * from metadata where ${values[0]}`
+    db.query(query, (err, result) => {
+        if (err) {
+            next(err)
+        } else {
+             res.json(result.rows)
+        }
+    })
+
+
+})
 module.exports = router
